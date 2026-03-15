@@ -31,10 +31,9 @@ def get_joystick_angle(adc_obj, reverse=False):
 print("System Ready. Mode: EYE MOVEMENT")
 
 while True:
-    button_val = joy_button.value()
-    is_pressed = (button_val == 0)
+    is_pressed = (joy_button.value() == 0)
 
-    if joy_button.is_pressed:
+    if is_pressed:
         current_mode = (current_mode + 1) % 3
         print(f"\n--- SWITCHED TO: {mode_names[current_mode]} ---")
         time.sleep(0.5)
