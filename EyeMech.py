@@ -1,7 +1,7 @@
 # Modified code from Will Cogley's original Eye Mech control code
 # Updated to include auto/manual mode switching, squint toggle, and blinking.
 
-# Requires the micropython-servo and picozero libraries
+# Requires the micropython-servo library
 # https://pypi.org/project/micropython-servo/
 
 # --- Import setup ---
