@@ -1,7 +1,7 @@
 # Modified code from Will Cogley's original Eye Mech control code
 # Updated to include auto/manual mode switching, squint toggle, and blinking.
 
-# Requires the micropython-servo library
+# Requires the micropython-servo and picozero libraries
 # https://pypi.org/project/micropython-servo/
 
 # --- Import setup ---
@@ -13,11 +13,9 @@ from servo import Servo
 # --- Hardware Setup ---
 led = Pin(25, Pin.OUT) # Onboard LED
 joy_button = Pin(22, Pin.IN, Pin.PULL_UP)  # Pin for mode/squint/blink button
-# Joystick ADC pins
-UD = ADC(26) # vertical
-LR = ADC(27) # horizontal
+UD = ADC(26) # Pin for vertical
+LR = ADC(27) # Pin for horizontal
 
-# --- Eye servos --- 
 servos = {
     "LR": Servo(pin_id=10),
     "UD": Servo(pin_id=11),
@@ -27,17 +25,16 @@ servos = {
     "BR": Servo(pin_id=15),
 }
 
-# --- Eye servo limits ---
+# --- Variables ---
 servo_limits = {
-    "LR": (55, 130),   
-    "UD": (50, 140),
-    "TL": (80, 170), 
-    "BL": (90, 20),
-    "TR": (90, 20),
-    "BR": (90, 170),
+    "LR": (60, 120),   
+    "UD": (60, 120),
+    "TL": (140, 60), 
+    "BL": (60, 100),
+    "TR": (60, 130),
+    "BR": (120, 60),
 }
 
-# --- other variables ---
 manual_mode = True
 last_button_state = 1
 press_time = 0
@@ -46,7 +43,7 @@ click_count = 0
 last_click_event = 0
 next_auto_move = 0 
 last_blink_time = 0
-squiting = False 
+squinting = False 
 long_press_handled = False
 
 LONG_PRESS_THRESHOLD = 500 
@@ -64,8 +61,8 @@ def blink():
 
 # --- Neutral Pose ---
 def neutral():
-    global squiting
-    squiting = False
+    global squinting
+    squinting = False
     servos["LR"].write(90)
     control_ud_and_lids(90)
 
@@ -74,15 +71,15 @@ def control_ud_and_lids(ud_angle):
     ud_min, ud_max = servo_limits["UD"]
     ud_progress = (ud_angle - ud_min) / (ud_max - ud_min)
     
-    if squiting:
-        tl_min, tl_max = 80, 110 
-        tr_min, tr_max = 90, 60
-        bl_min, bl_max = 90, 60
-        br_min, br_max = 90, 120
+    if squinting:
+        tl_min, tl_max = 140, 120 
+        bl_min, bl_max = 60, 70
+        tr_min, tr_max = 60, 100
+        br_min, br_max = 120, 110
     else:
         tl_min, tl_max = servo_limits["TL"]
-        tr_min, tr_max = servo_limits["TR"]
         bl_min, bl_max = servo_limits["BL"]
+        tr_min, tr_max = servo_limits["TR"]
         br_min, br_max = servo_limits["BR"]
 
     # Calculate eyelid positions based on UD position
@@ -109,7 +106,8 @@ def scale_potentiometer(pot_value, servo, reverse=False):
 
 # --- Main Loop ---
 while True:
-    now = time.ticks_ms()
+    now = time.ticks_ms() # Get the current time (in milliseconds) at the start of each loop iteration
+    # Read the current state of the button at the start of the loop
     is_pressed = (joy_button.value() == 0)
     
     # Button Logic
@@ -129,9 +127,9 @@ while True:
 
     # Long Press Handler
     if is_pressed and not long_press_handled and (now - press_time) > LONG_PRESS_THRESHOLD:
-        squiting = not squiting
+        squinting = not squinting
         long_press_handled = True
-        print("Squint:", "ON" if squiting else "OFF")
+        print("Squint:", "ON" if squinting else "OFF") # Debug for squint state
 
     # Process Clicks
     if click_count > 0 and (now - last_click_event) > DOUBLE_CLICK_GAP:
@@ -139,7 +137,7 @@ while True:
         if click_count >= 2:
             manual_mode = not manual_mode
             if not manual_mode: neutral()
-            print("Mode:", "MANUAL" if manual_mode else "AUTO")
+            print("Mode:", "MANUAL" if manual_mode else "AUTO") # Debug for mode state
         # Single Click / Blink
         elif click_count == 1 and manual_mode:
             blink()
@@ -173,4 +171,4 @@ while True:
                 next_auto_move = now + random.randint(300, 800)
              
     time.sleep_ms(10)
-    
+
